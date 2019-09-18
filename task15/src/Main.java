@@ -1,54 +1,81 @@
-import com.sun.corba.se.spi.orbutil.threadpool.NoSuchThreadPoolException;
+import com.sun.xml.internal.ws.api.model.wsdl.WSDLOutput;
 import org.json.*;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
-
 import java.net.URL;
 import java.net.URLConnection;
-import java.util.ArrayList;
-import java.util.Scanner;
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.URL;
-import java.net.URLConnection;
-import java.util.Timer;
-import java.util.TimerTask;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.Scanner;
+
+
 
 
 public class Main {
     public static final String ANSI_RESET = "\u001B[0m";
-    public static final String ANSI_BLACK = "\u001B[30m";
     public static final String ANSI_RED = "\u001B[31m";
-    public static final String ANSI_GREEN = "\u001B[36m";
+    public static final String ANSI_GREEN = "\u001B[32m";
 
     public static void main(String[] args) throws IOException {
+        Double tempBid = 0.0;
+        Double tempAsk = 0.0;
+        Double tempChange = 0.0;
 
-        Timer t = new Timer();
-        t.schedule(new TimerTask() {
+        Scanner exit = new Scanner(System.in);
+        Thread t = new Thread(new Runnable() {
+            @Override
             public void run() {
                 try {
-                    sekUsdRate();
-                } catch (IOException e) {
-                    e.printStackTrace();
+                    Thread.sleep(100);
+                    while (true) {
+                        String input = exit.nextLine();
+                        if (input.equals("exit")) {
+                            System.exit(0);
+                        } else {
+                            System.out.println("Invalid Input !! ");
+                        }
+                    }
+                } catch (InterruptedException ex) {
+                    ex.printStackTrace();
                 }
             }
-        }, 0, 10000);
+        });
+        t.start();
+        while (true) {
+            System.out.print("\033[H\033[2J");
+            System.out.flush();
+            JSONObject  newObject = sekUsdRate();
+            System.out.print("\033[H\033[2J");
+            System.out.flush();
+            System.out.println("\n This is made by Zacky, Jesper, Edis");
+            System.out.println("************************************\n");
+            System.out.println("ticker : USD/SEK ");
+            System.out.println((newObject.getDouble("bid") > tempBid ? ANSI_GREEN + "bid : " +newObject.getDouble("bid") + ANSI_RESET : ANSI_RED + "bid : " + newObject.getDouble("bid")  + ANSI_RESET ));
+            System.out.println((newObject.getDouble("ask") > tempAsk ? ANSI_GREEN + "ask : " +newObject.getDouble("ask") + ANSI_RESET : ANSI_RED + "ask : " + newObject.getDouble("ask")  + ANSI_RESET ));
+            System.out.println("High : " +newObject.get("high"));
+            System.out.println("Low : " +newObject.get("low"));
+            System.out.println("open : " + newObject.get("open"));
+            System.out.println((newObject.getDouble("changes") > tempChange ? ANSI_GREEN + "change : " +newObject.getDouble("changes") + ANSI_RESET : ANSI_RED + "change : " + newObject.getDouble("changes")  + ANSI_RESET ));
+            tempAsk = newObject.getDouble("ask");
+            tempBid = newObject.getDouble("bid");
+            tempChange = newObject.getDouble("changes");
 
+            System.out.println("Enter 'exit' to quit : ");
+            try {
+                Thread.sleep(6000);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
     }
 
 
-    public static void sekUsdRate() throws IOException {
-        String Url = "https://financialmodelingprep.com/api/v3/forex/";
+    public static JSONObject sekUsdRate() throws IOException {
 
+        String Url = "https://financialmodelingprep.com/api/v3/forex/";
         JSONObject originalList = new JSONObject(requestURL(Url));
         originalList.get("forexList");
         JSONArray secondLevel = new JSONArray(originalList.get("forexList").toString());
-
         JSONObject sekObject = new JSONObject();
         for (int i = 0; i <secondLevel.length() ; i++) {
             JSONObject  jsonObject = new JSONObject(secondLevel.get(i).toString());
@@ -56,14 +83,10 @@ public class Main {
                 sekObject=jsonObject;
             }
         }
-
-        String str =  String.valueOf(sekObject.get("changes"));
-        System.out.println("ticker : USD/SEK ");
-        System.out.println("Price : " +sekObject.get("high"));
-        System.out.println((Double.valueOf(str) > 0) ? ANSI_GREEN + "change : " +str + ANSI_RESET : ANSI_RED + "change : " + str  + ANSI_RESET );
-
-
+        return  sekObject;
     }
+
+
 
     public static String requestURL(String url) throws IOException {
         URLConnection connection = new URL(url).openConnection();
